@@ -1,0 +1,22 @@
+LSTM Tagalog NSFW Detection Model Evaluation
+======================================================================
+
+Model Architecture: Bidirectional LSTM
+Task: Binary Classification (Safe vs NSFW)
+
+Overall Accuracy: 0.8348
+
+Classification Report:
+              precision    recall  f1-score   support
+
+        Safe     0.8518    0.8644    0.8580      1283
+        NSFW     0.8109    0.7945    0.8026       939
+
+    accuracy                         0.8348      2222
+   macro avg     0.8313    0.8294    0.8303      2222
+weighted avg     0.8345    0.8348    0.8346      2222
+
+
+Confusion Matrix:
+[[1109  174]
+ [ 193  746]]
