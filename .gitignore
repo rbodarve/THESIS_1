@@ -1,0 +1,70 @@
+# ============================================================
+#  THESIS_1 — .gitignore
+#  Goal: keep code, configs, metrics and result plots in the
+#  repo; keep large datasets, trained weights and raw image
+#  dumps OUT of it.
+# ============================================================
+
+# ----- Datasets & raw data -----
+lstm_nsfw/dataset.csv
+*.npy                      # calibration / sample data arrays
+*.tfrecord
+
+# ----- Trained model weights / exported artifacts -----
+*.pt
+*.keras
+*.h5
+*.ckpt
+*.onnx
+*.tflite
+*.pb                       # SavedModel / frozen graphs (saved_model.pb, fingerprint.pb)
+*.pickle
+*.pkl
+*.joblib
+
+# TensorFlow SavedModel variable shards
+**/variables/
+**/*.index
+**/*.data-00000-of-00001
+
+# ----- Raw image dumps (may contain dataset imagery / NSFW content) -----
+# Training/validation batch previews written by Ultralytics
+**/train_batch*.jpg
+**/val_batch*.jpg
+# Per-image inference outputs
+yolov10nver6/output/inference_results/
+
+# NOTE: result plots (curves, confusion matrices, results.png,
+# training_history.png) are intentionally NOT ignored — they
+# document thesis results and are small.
+
+# ============================================================
+#  Standard Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ============================================================
+#  Tooling / OS
+# ============================================================
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
