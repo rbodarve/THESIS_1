@@ -1,0 +1,20 @@
+# YOLOv10n visual detector — Google Colab (Python 3.12, CUDA 12.6)
+# Tested versions match Colab's runtime as of the last successful run.
+# On Colab most of these are preinstalled; `pip install ultralytics` is
+# usually all you need — it pulls compatible torch/torchvision and triggers
+# the TensorFlow/ONNX export tooling on demand.
+
+ultralytics==8.3.217
+
+# Preinstalled on Colab — listed for reproducibility outside Colab.
+# Loose pins avoid forcing a reinstall of Colab's CUDA-matched builds.
+torch>=2.5
+torchvision>=0.20
+tensorflow>=2.15        # provides tf.lite.Interpreter used by TFLiteInference
+opencv-python>=4.6.0
+numpy>=1.23.0
+pyyaml>=5.3.1
+
+# Optional: only needed to embed labelmap.txt as metadata in the .tflite file.
+# Often unavailable on Python 3.12; the export step skips it gracefully.
+# tflite-support

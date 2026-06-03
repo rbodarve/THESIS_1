@@ -1,0 +1,8 @@
+# BiLSTM Tagalog/Taglish NSFW text classifier — Google Colab (Python 3.12)
+# All of these are preinstalled on Colab; loose pins avoid forcing reinstalls
+# of Colab's CUDA-matched TensorFlow build.
+
+tensorflow>=2.15          # Keras model + tf.lite for the .tflite export
+scikit-learn>=1.3         # train/test split + classification report
+pandas>=2.0               # read dataset.csv
+numpy>=1.23.0

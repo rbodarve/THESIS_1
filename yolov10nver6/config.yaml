@@ -1,0 +1,34 @@
+# YOLOv10n NSFW screen-content detector — pipeline configuration
+# Read automatically by main() in yolov10nver5(1).ipynb when this file is
+# present in the working directory (e.g. uploaded to /content on Colab).
+# If absent, the notebook falls back to these same built-in defaults.
+
+model:
+  weights: yolov10n.pt          # pretrained COCO weights (transfer learning)
+  task: detect
+
+dataset:
+  zip_path: /content/drive/MyDrive/Datasets/another_final_dataset.zip
+  extract_to: /content/combined_dataset
+  classes: [safe, nudity, gore]
+
+train:
+  epochs: 50
+  imgsz: 640
+  batch: 16
+  patience: 20
+
+export:
+  format: tflite
+  imgsz: 640
+  half: true                    # float16 export
+
+eval:
+  imgsz: 640
+  batch: 16
+  conf: 0.25
+
+paths:
+  output_dir: output
+  runs_dir: runs/train
+  run_name: screen_content_detector

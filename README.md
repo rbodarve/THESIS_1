@@ -124,9 +124,13 @@ A Bidirectional LSTM that classifies Tagalog/Taglish text as safe or unsafe.
 THESIS_1/
 ├── yolov10nver6/                 # 🖼️ visual NSFW detector (YOLOv10n)
 │   ├── yolov10nver5(1).ipynb     #   training + TFLite inference notebook
+│   ├── config.yaml               #   pipeline settings (paths, hyperparameters)
+│   ├── requirements.txt          #   Colab-pinned dependencies
 │   ├── output/                   #   labelmap, eval metrics, inference results
 │   └── runs/                     #   training/validation logs, plots, weights
 └── lstm_nsfw/                    # 💬 text NSFW classifier (BiLSTM)
+    ├── config.yaml               #   model + data settings
+    ├── requirements.txt          #   Colab-pinned dependencies
     ├── dataset.csv               #   (ignored) Tagalog text dataset
     ├── metrics/                  #   evaluation report
     └── models/lstm_tagalog_nsfw/ #   config + (ignored) weights
@@ -152,13 +156,20 @@ Large binaries are **excluded from version control** via [`.gitignore`](.gitigno
 
 ## 🚀 Getting Started
 
+Each model ships its own pinned `requirements.txt` (Colab-friendly, Python 3.12):
+
 ```bash
-pip install ultralytics tensorflow scikit-learn pandas
+pip install -r yolov10nver6/requirements.txt   # visual detector
+pip install -r lstm_nsfw/requirements.txt      # text classifier
 ```
 
+> On Google Colab most deps are preinstalled — for the YOLO notebook, the in-notebook
+> `pip install ultralytics` cell is usually enough.
+
 **🖼️ Visual model**
-Open the YOLO notebook and run the cells (designed for Colab; adjust the `data:`
-path in `args.yaml` for local runs).
+Open the YOLO notebook and run the cells (designed for Colab). Settings (dataset path,
+classes, epochs, weights) live in [`config.yaml`](yolov10nver6/config.yaml) — upload it
+next to the notebook on Colab to override the built-in defaults, or just run as-is.
 
 **💬 Text model**
 ```python
@@ -177,12 +188,33 @@ print("NSFW" if model.predict(seq)[0][0] > 0.5 else "Safe")
 
 ## 🐞 Known Issues
 
-- **YOLO TFLite eval returns zeros.** The evaluation under
-  [`output/metrics_results/`](yolov10nver6/output/metrics_results/) reports
-  `precision/recall/mAP = 0.0`, while training metrics are non-zero — pointing to
-  an output-parsing mismatch in `TFLiteInference` post-processing, not a failed model.
-- **Low detection mAP** (~0.21 mAP50) — the visual detector needs more data /
-  tuning before it's production-ready.
+**Fixed in the latest notebook** (the committed plots/CSVs under
+[`runs/`](yolov10nver6/runs/) and [`output/`](yolov10nver6/output/) still reflect
+the *old* run — rerun the notebook to refresh them):
+
+- **Zeroed-out eval metrics.** The saved
+  [`metrics_results/`](yolov10nver6/output/metrics_results/) files reported
+  `precision/recall/mAP = 0.0` even though the validation log showed real numbers
+  (e.g. mAP50 ≈ 0.20). Root cause was **not** TFLite post-processing — it was
+  `ModelEvaluator.evaluate()` reading a non-existent `results.metrics` attribute and
+  falling back to zeros. The evaluation runs on the PyTorch `best.pt`, not the TFLite
+  model. Now reads the Ultralytics `results.box` (`mp`, `mr`, `map50`, `map`).
+- **Training from scratch.** Training initialised from `yolov10n.yaml` (random weights),
+  a major cause of the low mAP. Now starts from pretrained `yolov10n.pt` (transfer
+  learning), configurable via [`config.yaml`](yolov10nver6/config.yaml).
+- **TFLite metadata never attached.** `create_label_file()` ran *after* the TFLite
+  export, so `labelmap.txt` didn't exist when metadata population was attempted. The
+  label map is now created **before** export.
+
+**Still open:**
+
+- **Background-heavy dataset.** Most images carry no labels (train: ~7,477 of 10,958
+  are backgrounds; val: ~1,239 of 1,547). In validation, `safe` and `gore` score
+  P/R/mAP ≈ 0 while only `nudity` is learned (mAP50 ≈ 0.61) — the real driver of the
+  low overall mAP. Modelling `safe` as a *boxed detection class* is also questionable.
+- **`TFLiteInference` is a loader stub.** `infer()` returns the raw output tensor with
+  no decoding/NMS/coordinate scaling, so there is no working end-to-end TFLite
+  detection path yet — it only loads the model and reports the input shape.
 - **Mild class imbalance** in the text test split (1283 safe vs 939 NSFW).
 
 ---
@@ -193,4 +225,6 @@ Academic thesis project — released for educational and research purposes.
 
 <div align="center">
 <sub>Built for content-moderation research · YOLOv10n + BiLSTM · TensorFlow Lite</sub>
+<br/>
+<sub>README layout adapted from <a href="https://github.com/othneildrew/Best-README-Template">Best-README-Template</a> by Othneil Drew · badges by <a href="https://shields.io">Shields.io</a></sub>
 </div>

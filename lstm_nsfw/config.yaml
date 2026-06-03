@@ -1,0 +1,29 @@
+# BiLSTM Tagalog/Taglish NSFW text classifier — configuration
+# Mirrors models/lstm_tagalog_nsfw/config.json plus data/output paths.
+
+model:
+  architecture: bidirectional_lstm
+  task: binary_classification   # Safe vs NSFW
+  vocab_size: 10000
+  embedding_dim: 128
+  lstm_units: 128               # bidirectional
+  dense_units: 64
+  max_sequence_length: 128
+
+train:
+  test_size: 0.2
+  threshold: 0.5                # P(NSFW) > threshold -> NSFW
+
+data:
+  dataset_csv: dataset.csv      # columns: text,label  (not committed)
+  text_column: text
+  label_column: label
+  labels: [Safe, NSFW]
+
+paths:
+  model_dir: models/lstm_tagalog_nsfw
+  best_model: models/lstm_tagalog_nsfw/best_model.keras
+  final_model: models/lstm_tagalog_nsfw/final_model.keras
+  tokenizer: models/lstm_tagalog_nsfw/tokenizer.pickle
+  tflite_model: models/lstm_tagalog_nsfw/model.tflite
+  metrics: metrics/lstm_metrics.txt
