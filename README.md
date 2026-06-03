@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ THESIS_1 — Bilingual NSFW Content Detection
+# 🛡️ THESIS 1 — NSFW Content Detection
 
 **Two lightweight, edge-deployable models for moderating unsafe on-screen content**
 — images *and* Tagalog/Taglish text.
@@ -33,7 +33,7 @@
 
 ## 📖 About
 
-**THESIS_1** pairs two independent models to flag unsafe content shown on a
+**THESIS 1** pairs two independent models to flag unsafe content shown on a
 screen. Each is trained separately and exported to **TensorFlow Lite** for
 on-device / mobile inference, so moderation can run without a network round-trip.
 

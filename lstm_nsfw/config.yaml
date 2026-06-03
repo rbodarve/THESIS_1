@@ -1,4 +1,5 @@
 # BiLSTM Tagalog/Taglish NSFW text classifier — configuration
+# Single source of truth for the training notebook (LSTM_NSFW_Detection.ipynb).
 # Mirrors models/lstm_tagalog_nsfw/config.json plus data/output paths.
 
 model:
@@ -6,13 +7,24 @@ model:
   task: binary_classification   # Safe vs NSFW
   vocab_size: 10000
   embedding_dim: 128
-  lstm_units: 128               # bidirectional
+  lstm_units: 128               # bidirectional (second stacked layer uses lstm_units // 2)
   dense_units: 64
   max_sequence_length: 128
+  spatial_dropout: 0.2          # SpatialDropout1D after the embedding
+  dropout_rate: 0.3             # dropout in LSTM/Dense blocks
 
 train:
-  test_size: 0.2
-  threshold: 0.5                # P(NSFW) > threshold -> NSFW
+  # Three-way stratified split: test_size and val_size are fractions of the
+  # FULL dataset. Remainder is the training set (here 0.70 / 0.15 / 0.15).
+  test_size: 0.15               # held-out test set — only touched for final metrics
+  val_size: 0.15                # validation set — early stopping + checkpoint selection
+  batch_size: 64
+  epochs: 20
+  learning_rate: 0.001
+  random_seed: 42
+  use_class_weights: true       # balance Safe/NSFW loss contribution
+  monitor_metric: val_loss      # SAME metric for EarlyStopping + ModelCheckpoint
+  threshold: 0.5                # P(NSFW) > threshold -> NSFW (training + inference)
 
 data:
   dataset_csv: dataset.csv      # columns: text,label  (not committed)
