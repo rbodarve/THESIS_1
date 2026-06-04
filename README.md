@@ -67,19 +67,33 @@ A YOLOv10-nano object detector that locates and flags unsafe visual content.
 
 ## 💬 Text Classifier — BiLSTM
 
-A Bidirectional LSTM that classifies Tagalog/Taglish text as safe or unsafe.
+A two-layer Bidirectional LSTM that classifies Tagalog/Taglish text as safe or unsafe.
 
+- **Notebook:** [`LSTM_NSFW_Detection.ipynb`](lstm_nsfw/LSTM_NSFW_Detection.ipynb)
+  — an end-to-end, **config-driven** pipeline (every hyperparameter is read from
+  [`config.yaml`](lstm_nsfw/config.yaml), the single source of truth):
+  load → stratified split → train → evaluate → export TFLite → self-verify
+  (developed on Google Colab).
 - **Dataset:** ~11,110 labeled samples (`text,label`) — *not committed* (see [Data & Weights](#-data--weights)).
+- **Split:** 70 / 15 / 15 stratified train / validation / **held-out test**. The test
+  set is never used for training or checkpoint selection, so reported metrics are honest.
+- **Training:** Adam · batch 64 · ≤20 epochs with early stopping (restores the best
+  `val_loss` weights) · **class-weighted** loss to balance Safe/NSFW.
 - **Architecture** ([`config.json`](lstm_nsfw/models/lstm_tagalog_nsfw/config.json)):
 
   | Hyperparameter | Value |
   |----------------|-------|
   | Vocabulary size | 10,000 |
   | Embedding dim | 128 |
-  | LSTM units | 128 (bidirectional) |
-  | Dense units | 64 |
+  | LSTM units | 128 → 64 (two stacked bidirectional layers) |
+  | Dense units | 64 → 32 |
   | Max sequence length | 128 |
+  | Dropout / spatial dropout | 0.3 / 0.2 |
 
+- **TFLite export:** training uses the fast cuDNN LSTM kernel; for export the notebook
+  rebuilds a `use_cudnn=False` copy with a fixed batch-1 input and converts
+  **builtins-only**, yielding a `model.tflite` that runs on a stock interpreter
+  (**no Flex delegate**) and is verified to match the Keras model on smoke tests.
 - **Artifacts:** `best_model.keras`, `final_model.keras`, `tokenizer.pickle`, `model.tflite` (*not committed*).
 
 ---
@@ -103,13 +117,18 @@ A Bidirectional LSTM that classifies Tagalog/Taglish text as safe or unsafe.
 
 ### BiLSTM — Text Classifier
 
+Evaluated on the **held-out test set** (1,667 samples, never seen during training):
+
 | Class | Precision | Recall | F1 | Support |
 |-------|:---------:|:------:|:--:|:-------:|
-| Safe  | 0.852 | 0.864 | 0.858 | 1283 |
-| NSFW  | 0.811 | 0.795 | 0.803 | 939 |
-| **Accuracy** | | | **0.835** | 2222 |
+| Safe  | 0.884 | 0.822 | 0.852 | 962 |
+| NSFW  | 0.779 | 0.853 | 0.814 | 705 |
+| **Accuracy** | | | **0.835** | 1667 |
 
-<sub>Full report: [`lstm_metrics.txt`](lstm_nsfw/metrics/lstm_metrics.txt)</sub>
+<sub>Full report: [`lstm_metrics.txt`](lstm_nsfw/metrics/lstm_metrics.txt) · NSFW **recall is
+prioritised** (0.85) so unsafe text is rarely missed — tune via `threshold` in
+[`config.yaml`](lstm_nsfw/config.yaml). GPU LSTM training is non-deterministic, so accuracy
+varies ~0.835–0.845 run to run.</sub>
 
 <div align="center">
 <img src="lstm_nsfw/models/lstm_tagalog_nsfw/confusion_matrix.png" width="48%" alt="LSTM confusion matrix"/>
@@ -129,11 +148,12 @@ THESIS_1/
 │   ├── output/                   #   labelmap, eval metrics, inference results
 │   └── runs/                     #   training/validation logs, plots, weights
 └── lstm_nsfw/                    # 💬 text NSFW classifier (BiLSTM)
-    ├── config.yaml               #   model + data settings
+    ├── LSTM_NSFW_Detection.ipynb #   config-driven train + TFLite export notebook
+    ├── config.yaml               #   model + data + training settings (single source)
     ├── requirements.txt          #   Colab-pinned dependencies
     ├── dataset.csv               #   (ignored) Tagalog text dataset
-    ├── metrics/                  #   evaluation report
-    └── models/lstm_tagalog_nsfw/ #   config + (ignored) weights
+    ├── metrics/                  #   evaluation report (held-out test set)
+    └── models/lstm_tagalog_nsfw/ #   config.json + (ignored) weights + model.tflite
 ```
 
 ---
@@ -180,9 +200,14 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 tok = pickle.load(open("lstm_nsfw/models/lstm_tagalog_nsfw/tokenizer.pickle", "rb"))
 model = tf.keras.models.load_model("lstm_nsfw/models/lstm_tagalog_nsfw/best_model.keras")
 
-seq = pad_sequences(tok.texts_to_sequences(["ulol manigas ka"]), maxlen=128)
+# padding/truncating must match training ('post')
+seq = pad_sequences(tok.texts_to_sequences(["ulol manigas ka"]),
+                    maxlen=128, padding="post", truncating="post")
 print("NSFW" if model.predict(seq)[0][0] > 0.5 else "Safe")
 ```
+
+> The committed `model.tflite` is **builtins-only** (no Flex delegate) and takes a
+> fixed `(1, 128)` float32 input — run one tokenized, post-padded sequence at a time.
 
 ---
 
@@ -215,7 +240,19 @@ the *old* run — rerun the notebook to refresh them):
 - **`TFLiteInference` is a loader stub.** `infer()` returns the raw output tensor with
   no decoding/NMS/coordinate scaling, so there is no working end-to-end TFLite
   detection path yet — it only loads the model and reports the input shape.
-- **Mild class imbalance** in the text test split (1283 safe vs 939 NSFW).
+
+**Text model (BiLSTM):**
+
+- **Overfits fast / ~84% ceiling.** Validation loss bottoms around epoch 2, then the
+  model overfits (train accuracy → ~0.97 while validation falls). Early stopping ships
+  the good early checkpoint, so the test number is unaffected — but accuracy is
+  data/capacity-bound, not tuning-bound. Levers (all in `config.yaml`): smaller vocab,
+  fewer LSTM units, lower learning rate, or pretrained Tagalog embeddings.
+- **Out-of-distribution formal text.** Training data is informal/profane social-media
+  Taglish, so clean formal greetings (e.g. *"Magandang umaga sa lahat"*) can be
+  misclassified NSFW with high confidence. More diverse Safe examples would help.
+- **Mild class imbalance** (overall dataset 6,413 Safe vs 4,697 NSFW; test split 962 vs 705),
+  mitigated with class-weighted loss.
 
 ---
 
