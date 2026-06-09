@@ -55,7 +55,7 @@ on-device / mobile inference, so moderation can run without a network round-trip
 
 A YOLOv10-nano object detector that locates and flags unsafe visual content.
 
-- **Notebook:** [`yolov10nver5(1).ipynb`](yolov10nver6/yolov10nver5%281%29.ipynb)
+- **Notebook:** [`yolov10nver5.ipynb`](yolov10nver6/yolov10nver5.ipynb)
   — houses the `ScreenContentDetector` training pipeline and a `TFLiteInference`
   wrapper (developed on Google Colab).
 - **Classes:** `safe`, `nudity`, `gore` — see [`labelmap.txt`](yolov10nver6/output/labelmap.txt).
@@ -102,11 +102,17 @@ A two-layer Bidirectional LSTM that classifies Tagalog/Taglish text as safe or u
 
 ### YOLOv10n — Visual Detector
 
-| Metric | mAP50 | mAP50-95 |
-|--------|:-----:|:--------:|
-| **Validation** | ~0.21 | ~0.13 |
+Validation (best `pt`, 50 epochs from pretrained `yolov10n.pt`):
 
-<sub>Full per-epoch log: [`results.csv`](yolov10nver6/runs/train/screen_content_detector/results.csv)</sub>
+| Class | Precision | Recall | mAP50 | mAP50-95 |
+|-------|:---------:|:------:|:-----:|:--------:|
+| safe   | 0.147 | 0.073 | 0.048 | 0.019 |
+| nudity | 0.557 | 0.667 | 0.664 | 0.470 |
+| gore   | 0.420 | 0.171 | 0.175 | 0.062 |
+| **all** | 0.375 | 0.304 | **0.296** | **0.184** |
+
+<sub>Full per-epoch log: [`results.csv`](yolov10nver6/runs/train/screen_content_detector/results.csv) ·
+`nudity` is learned well; `gore` is weak and `safe` near-zero (see [Known Issues](#-known-issues)).</sub>
 
 <div align="center">
 <img src="yolov10nver6/runs/train/screen_content_detector/results.png" width="80%" alt="YOLO training results"/>
@@ -142,7 +148,7 @@ varies ~0.835–0.845 run to run.</sub>
 ```
 THESIS_1/
 ├── yolov10nver6/                 # 🖼️ visual NSFW detector (YOLOv10n)
-│   ├── yolov10nver5(1).ipynb     #   training + TFLite inference notebook
+│   ├── yolov10nver5.ipynb        #   training + TFLite export notebook
 │   ├── config.yaml               #   pipeline settings (paths, hyperparameters)
 │   ├── requirements.txt          #   Colab-pinned dependencies
 │   ├── output/                   #   labelmap, eval metrics, inference results
@@ -213,9 +219,9 @@ print("NSFW" if model.predict(seq)[0][0] > 0.5 else "Safe")
 
 ## 🐞 Known Issues
 
-**Fixed in the latest notebook** (the committed plots/CSVs under
-[`runs/`](yolov10nver6/runs/) and [`output/`](yolov10nver6/output/) still reflect
-the *old* run — rerun the notebook to refresh them):
+**Fixed in the latest notebook** (the Results above are from the latest pretrained
+run; the committed plots/CSVs under [`runs/`](yolov10nver6/runs/) and
+[`output/`](yolov10nver6/output/) may lag until regenerated):
 
 - **Zeroed-out eval metrics.** The saved
   [`metrics_results/`](yolov10nver6/output/metrics_results/) files reported
@@ -230,16 +236,20 @@ the *old* run — rerun the notebook to refresh them):
 - **TFLite metadata never attached.** `create_label_file()` ran *after* the TFLite
   export, so `labelmap.txt` didn't exist when metadata population was attempted. The
   label map is now created **before** export.
+- **YOLOv10 TFLite export crash.** `onnx2tf` cannot convert YOLOv10's end-to-end NMS
+  head (`model.23/Concat`, boxes `[1,4,300]` vs scores `[1,300,1]`) — at *any* version,
+  so it was not a version issue. The export now disables that head (`end2end=False`)
+  before converting, producing a valid float16 `.tflite` with raw `(1, 7, 8400)` output.
 
 **Still open:**
 
 - **Background-heavy dataset.** Most images carry no labels (train: ~7,477 of 10,958
-  are backgrounds; val: ~1,239 of 1,547). In validation, `safe` and `gore` score
-  P/R/mAP ≈ 0 while only `nudity` is learned (mAP50 ≈ 0.61) — the real driver of the
-  low overall mAP. Modelling `safe` as a *boxed detection class* is also questionable.
-- **`TFLiteInference` is a loader stub.** `infer()` returns the raw output tensor with
-  no decoding/NMS/coordinate scaling, so there is no working end-to-end TFLite
-  detection path yet — it only loads the model and reports the input shape.
+  are backgrounds; val: ~1,239 of 1,547). In validation only `nudity` is learned well
+  (mAP50 ≈ 0.66); `gore` is weak (≈ 0.18) and `safe` near-zero (≈ 0.05) — the real
+  driver of the low overall mAP. Modelling `safe` as a *boxed detection class* is also questionable.
+- **`TFLiteInference` is a loader stub.** The `.tflite` now exports cleanly, but
+  `infer()` returns the raw `(1, 7, 8400)` tensor with no decoding/NMS/coordinate
+  scaling — producing actual boxes still needs post-processing (here or in the app).
 
 **Text model (BiLSTM):**
 
