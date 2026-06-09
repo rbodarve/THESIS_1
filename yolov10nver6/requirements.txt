@@ -1,16 +1,27 @@
-# YOLOv10n visual detector — Google Colab (Python 3.12, CUDA 12.6)
-# Tested versions match Colab's runtime as of the last successful run.
-# On Colab most of these are preinstalled; `pip install ultralytics` is
-# usually all you need — it pulls compatible torch/torchvision and triggers
-# the TensorFlow/ONNX export tooling on demand.
+# YOLOv10n visual detector — Google Colab (Python 3.12, CUDA 12.x)
+# Versions verified on the Colab runtime used for the last full training +
+# export run. The notebook's first cell installs this same pinned stack.
 
-ultralytics==8.3.217
+ultralytics==8.4.60
 
-# Preinstalled on Colab — listed for reproducibility outside Colab.
-# Loose pins avoid forcing a reinstall of Colab's CUDA-matched builds.
+# --- TFLite export toolchain (PINNED on purpose) ---------------------------
+# YOLOv10's end-to-end NMS head only converts cleanly with onnx2tf <= 1.26.3;
+# the auto-installed onnx2tf 1.28.x fails on 'model.23/Concat' ([1,4,300] vs
+# [1,300,1]). TF must be pinned too and installed BEFORE TensorFlow is imported,
+# otherwise a mid-run downgrade won't take effect without a runtime restart.
+onnx2tf==1.26.3
+tensorflow==2.19.1      # also provides tf.lite.Interpreter for TFLiteInference
+tf_keras==2.19.0
+onnx<2.0
+onnxslim
+onnxruntime
+onnx_graphsurgeon
+sng4onnx
+ai-edge-litert>=1.2.0
+
+# Preinstalled on Colab — loose pins avoid reinstalling CUDA-matched builds.
 torch>=2.5
 torchvision>=0.20
-tensorflow>=2.15        # provides tf.lite.Interpreter used by TFLiteInference
 opencv-python>=4.6.0
 numpy>=1.23.0
 pyyaml>=5.3.1
