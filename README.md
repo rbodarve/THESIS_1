@@ -223,8 +223,7 @@ print("NSFW" if model.predict(seq)[0][0] > 0.5 else "Safe")
 run; the committed plots/CSVs under [`runs/`](yolov10nver6/runs/) and
 [`output/`](yolov10nver6/output/) may lag until regenerated):
 
-- **Zeroed-out eval metrics.** The saved
-  [`metrics_results/`](yolov10nver6/output/metrics_results/) files reported
+- **Zeroed-out eval metrics.** The saved `output/metrics_results/` files reported
   `precision/recall/mAP = 0.0` even though the validation log showed real numbers
   (e.g. mAP50 ≈ 0.20). Root cause was **not** TFLite post-processing — it was
   `ModelEvaluator.evaluate()` reading a non-existent `results.metrics` attribute and
