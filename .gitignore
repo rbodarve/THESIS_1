@@ -1,14 +1,18 @@
 # ============================================================
 #  THESIS_1 — .gitignore
-#  Goal: keep code, configs, metrics and result plots in the
-#  repo; keep large datasets, trained weights and raw image
-#  dumps OUT of it.
+#  Keep code, configs, metrics and result plots in the repo;
+#  keep large datasets, trained weights and raw image dumps OUT.
+#  NOTE: gitignore has no inline comments — every comment is on
+#  its own line, otherwise the pattern silently breaks.
 # ============================================================
 
 # ----- Datasets & raw data -----
 lstm_nsfw/dataset.csv
-*.npy                      # calibration / sample data arrays
 *.tfrecord
+# Numpy arrays (calibration / sample data) — but keep the small
+# quantization calibration set the YOLO export needs.
+*.npy
+!yolov10nver6/calibration_image_sample_data_20x128x128x3_float32.npy
 
 # ----- Trained model weights / exported artifacts -----
 *.pt
@@ -17,7 +21,8 @@ lstm_nsfw/dataset.csv
 *.ckpt
 *.onnx
 *.tflite
-*.pb                       # SavedModel / frozen graphs (saved_model.pb, fingerprint.pb)
+# SavedModel / frozen graphs (saved_model.pb, fingerprint.pb)
+*.pb
 *.pickle
 *.pkl
 *.joblib
@@ -27,16 +32,16 @@ lstm_nsfw/dataset.csv
 **/*.index
 **/*.data-00000-of-00001
 
-# ----- Raw image dumps (may contain dataset imagery / NSFW content) -----
-# Training/validation batch previews written by Ultralytics
+# ----- Raw image dumps (may contain dataset / NSFW imagery) -----
+# Ultralytics training/validation batch previews
 **/train_batch*.jpg
 **/val_batch*.jpg
 # Per-image inference outputs
 yolov10nver6/output/inference_results/
 
 # NOTE: result plots (curves, confusion matrices, results.png,
-# training_history.png) are intentionally NOT ignored — they
-# document thesis results and are small.
+# labels.jpg, training_history.png) are intentionally NOT ignored
+# — they document thesis results and are small.
 
 # ============================================================
 #  Standard Python
@@ -63,6 +68,8 @@ ENV/
 # ============================================================
 #  Tooling / OS
 # ============================================================
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
 .idea/
 .vscode/
 *.swp
