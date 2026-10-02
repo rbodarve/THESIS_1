@@ -1,5 +1,5 @@
 # YOLOv10n NSFW screen-content detector — pipeline configuration
-# Read automatically by main() in yolov10nver5(1).ipynb when this file is
+# Read automatically by main() in yolov10nver5.ipynb when this file is
 # present in the working directory (e.g. uploaded to /content on Colab).
 # If absent, the notebook falls back to these same built-in defaults.
 
