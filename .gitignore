@@ -70,6 +70,7 @@ ENV/
 # ============================================================
 # Local Claude Code settings (machine-specific)
 .claude/settings.local.json
+.claude/
 .idea/
 .vscode/
 *.swp

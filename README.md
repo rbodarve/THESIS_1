@@ -265,6 +265,19 @@ run; the committed plots/CSVs under [`runs/`](yolov10nver6/runs/) and
 
 ---
 
+## Review notes (2026-10-18)
+
+1. **YOLO export.** Only the manual cell 12 sets `end2end=False`; `export_to_tflite` in `main()` does not. A top-to-bottom run falls back to ONNX and skips the TFLite test. Known Issues (line ~240) says the export already disables the head, and "not a version issue" conflicts with the onnx2tf 1.28.x comment in `yolov10nver6/requirements.txt`.
+2. **Config.** `yolov10nver6/config.yaml` keys `train.patience`, `export.*`, `eval.batch`, `eval.conf`, `paths.*` and `model.task` are not read; the notebook hardcodes the same values. The LSTM callbacks hardcode patience 5/3, factor 0.5 and min_lr 1e-7 instead of reading `config.yaml`.
+3. **YOLO metrics.** There is no test split: `best.pt`, early stopping and the Results table all use the val set, so the numbers are selection-biased. The evaluator calls `val(conf=0.25)`, which understates mAP (standard ≈ 0.001); the Results table comes from the training-time val (`results.csv` best epoch).
+4. **TFLite file.** Line ~215 says "The committed `model.tflite`", but `*.tflite` is gitignored and not tracked.
+5. **LSTM data.** `dataset.csv` has 104 repeated texts (110 extra rows), 5 with conflicting labels. There is no dedup before the split, so a few rows leak between train and test. If `dataset.csv` is missing, the notebook writes and trains on a 20-row sample file.
+6. **Environment.** `lstm_nsfw/requirements.txt` says `tensorflow>=2.15`, but `use_cudnn=` and Keras 3 need TF ≥ 2.16. The last LSTM cell and the YOLO cells 7, 10–12 need Colab/Google Drive paths.
+7. **Run check** (2026-10-18, CPU, TF 2.19.0, scratch copy, Colab download cell skipped). The LSTM notebook runs top to bottom; test accuracy 0.836 (README 0.835); TFLite matches Keras (max |diff| 0.0000). NSFW recall was 0.740 in this run vs 0.85 in the README, so recall varies between runs and the 0.5 threshold does not hold it at 0.85. The YOLO notebook was not run (needs ultralytics, onnx2tf, Google Drive data and a GPU).
+8. **Simplification.** About 200 lines could go, for example the unused `verify_extraction`, `TFLiteInference.preprocess_image`/`infer`, the `tflite_support` metadata block, duplicate imports in YOLO cells 5, 9–11, and `test_inference` (duplicates `verify_tflite`).
+
+---
+
 ## 📄 License
 
 Academic thesis project — released for educational and research purposes.
